@@ -269,6 +269,36 @@ permission, filtered by the deny list, paced by the queue, and interruptible wit
 `/lumi cancel`. Refusals explain themselves, so Lumi falls back to proposing commands for
 manual approval rather than retrying.
 
+## Companion mods: Lumi Link
+
+Lumi can see the world and talk about it. It cannot walk anywhere or press a key. Other mods
+can, and Lumi hands their tools to your session alongside its own, so there is one MCP server
+to register rather than one per mod.
+
+A companion writes a descriptor into `config/lumi-link/` on startup, saying what it is called,
+where its own loopback MCP endpoint is and what token to send. Lumi reads that directory,
+health-checks what it finds, and merges those tools in under the descriptor's prefix — so
+Autopilot's `farm_start` arrives as `ap_farm_start`. `/lumi companions` shows what was found
+and whether it is answering.
+
+It is a file and an HTTP call rather than a shared Java interface, on purpose. An interface
+would make every companion compile against a particular Lumi version, and the first time either
+side updated, the other would fail to load — and a hard load failure in a mod pack is worse
+than a missing feature. With a descriptor, a mismatch is at worst a stale file that fails a
+health check and is skipped. Lumi's own tools always win a name collision, and a descriptor
+pointing anywhere but loopback is refused outright: these endpoints can hold the player's keys
+down, and the one thing they must never be is reachable.
+
+Known companions:
+
+| Mod | Prefix | What it adds |
+|---|---|---|
+| [Autopilot](https://github.com/omeldar/goh-autopilot) | `ap_` | Record and replay the player's key presses, travel to coordinates, run the farms in their farm book |
+
+The protocol is written up in
+[Autopilot's docs/lumi-link.md](https://github.com/omeldar/goh-autopilot/blob/main/docs/lumi-link.md),
+including the rules both sides are expected to keep.
+
 ## Configuration
 
 `config/lumi.json` is created on first launch:

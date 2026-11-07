@@ -141,6 +141,8 @@ public final class McpBridge {
         info.addProperty("name", "lumipet");
         info.addProperty("version", "0.1.0");
 
+        String companions = CompanionRegistry.describe();
+
         JsonObject result = new JsonObject();
         result.addProperty("protocolVersion", requested);
         result.add("capabilities", caps);
@@ -150,7 +152,11 @@ public final class McpBridge {
               + "but for a survival or adventure player without command permission on a server "
               + "they only return blocks the player can see. "
               + "run_command and run_commands only work in creative with commands enabled; "
-              + "check can_build in get_context before relying on them.");
+              + "check can_build in get_context before relying on them."
+              + (companions.isEmpty() ? "" :
+                "\n\nOther mods in this pack answer through here too. Their tools carry a "
+              + "prefix, and they answer for themselves - trust what they say about their own "
+              + "limits over anything you would otherwise assume:" + companions));
         return result;
     }
 
@@ -221,6 +227,12 @@ public final class McpBridge {
                 "{\"type\":\"object\",\"properties\":{"
               + "\"message\":{\"type\":\"string\"}},\"required\":[\"message\"]}"));
 
+        // Whatever else is in the pack, under its own prefix. Lumi's own tools are added
+        // first and win any name collision, so a companion cannot shadow get_context.
+        for (var el : CompanionRegistry.tools(tools)) {
+            tools.add(el);
+        }
+
         JsonObject result = new JsonObject();
         result.add("tools", tools);
         return result;
@@ -241,7 +253,12 @@ public final class McpBridge {
             case "run_command"  -> text(runCommands(new String[]{args.get("command").getAsString()}));
             case "run_commands" -> text(runCommands(stringArray(args.getAsJsonArray("commands"))));
             case "say"          -> { Chat.info(args.get("message").getAsString()); yield text("said"); }
-            default -> throw new IllegalArgumentException("unknown tool: " + name);
+            default -> {
+                // Not one of ours: it may belong to a companion mod in the pack.
+                String forwarded = CompanionRegistry.call(name, args);
+                if (forwarded == null) throw new IllegalArgumentException("unknown tool: " + name);
+                yield text(forwarded);
+            }
         };
     }
 

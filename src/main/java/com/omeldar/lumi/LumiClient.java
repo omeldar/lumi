@@ -220,6 +220,11 @@ public class LumiClient implements ClientModInitializer {
                 return 1;
             }))
 
+            .then(ClientCommandManager.literal("companions").executes(c -> {
+                companions();
+                return 1;
+            }))
+
             .then(ClientCommandManager.literal("cancel").executes(c -> {
                 CommandQueue.clear();
                 boolean killed = ClaudeRunner.abort();
@@ -307,8 +312,30 @@ public class LumiClient implements ClientModInitializer {
         Chat.dim("/lumi keys                   bindings, conflicts, and rebinding");
         Chat.dim("/lumi notes                  where this world's notes live");
         Chat.dim("/lumi last                   reopen the approval menu");
+        Chat.dim("/lumi companions             other mods answering through this bridge");
         Chat.dim("/lumi undo | cancel | status");
         Chat.dim("Keys: Options - Controls - Key Binds - Lumi, or the cog in Mod Menu.");
+    }
+
+    /**
+     * What else in the pack is reachable through Lumi's bridge. Worth a command of its own:
+     * when a session says it cannot start a farm, the first question is whether the mod that
+     * does farms is actually answering.
+     */
+    private static void companions() {
+        Chat.info(Text.literal("Lumi Link").formatted(Formatting.GOLD));
+        var found = CompanionRegistry.known();
+        if (found.isEmpty()) {
+            Chat.dim("no companion mods found in " + CompanionRegistry.dir());
+            Chat.dim("a companion writes its own descriptor there on startup");
+            return;
+        }
+        for (var c : found) {
+            Chat.dim((c.name == null || c.name.isBlank() ? c.prefix : c.name)
+                    + "  " + c.version + "  tools: " + c.prefix + "_*");
+            Chat.dim("  " + c.mcpUrl + (c.alive ? "  ok" : "  not answering"
+                    + (c.lastError == null || c.lastError.isBlank() ? "" : " - " + c.lastError)));
+        }
     }
 
     private static void status() {
