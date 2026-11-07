@@ -502,7 +502,8 @@ public class LumiClient implements ClientModInitializer {
 
         if (proposal.prose != null && !proposal.prose.isBlank()) {
             for (String line : proposal.prose.split("\n")) {
-                if (!line.isBlank()) Chat.info(Text.literal(line.strip()));
+                String plain = PlainText.line(line);
+                if (!plain.isBlank()) Chat.info(Text.literal(plain));
             }
         }
 
